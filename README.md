@@ -13,7 +13,7 @@ Local Storage Persistence: All pin data, including addresses and remarks, is sto
 PROJECT STRUCTURE
 HTML, CSS, and JavaScript: The core project is written in plain HTML, CSS, and JavaScript with no backend. The Leaflet.js library is used for map functionality.
 
-SETUP AND USAGE
+*SETUP AND USAGE*
 Prerequisites
 Internet Connection: The project requires an internet connection to load the Leaflet library and OpenStreetMap tiles.
 Web Browser: A modern web browser that supports local storage and JavaScript.
