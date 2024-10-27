@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Pin Tool</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 500px; width: 75%; float: left; }
+        #sidebar { height: 500px; width: 25%; float: left; overflow-y: auto; padding: 10px; background-color: #f7f7f7; }
+        .pin-item { padding: 5px; border-bottom: 1px solid #ddd; cursor: pointer; }
+        .popup-form { font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="sidebar">
+    <h3>Saved Pins</h3>
+    <div id="pins-list"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Initialize map
+const map = L.map('map').setView([51.505, -0.09], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+// Function to get address based on lat/long using OpenStreetMap's Nominatim API
+async function fetchAddress(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const response = await fetch(url);
+    if (!response.ok) return "Address not found";
+    const data = await response.json();
+    return data.display_name || "Address not found";
+}
+
+// Local storage functions
+function savePinsToLocalStorage(pins) {
+    localStorage.setItem('pins', JSON.stringify(pins));
+}
+
+function getPinsFromLocalStorage() {
+    return JSON.parse(localStorage.getItem('pins')) || [];
+}
+
+// Function to render saved pins in sidebar
+function renderPins() {
+    const pins = getPinsFromLocalStorage();
+    const pinsList = document.getElementById('pins-list');
+    pinsList.innerHTML = '';
+
+    pins.forEach((pin, index) => {
+        const pinItem = document.createElement('div');
+        pinItem.className = 'pin-item';
+        pinItem.innerHTML = `<strong>${pin.address}</strong><br>${pin.remark}`;
+        pinItem.addEventListener('click', () => {
+            map.setView([pin.lat, pin.lng], 15);
+            L.popup().setLatLng([pin.lat, pin.lng]).setContent(`${pin.address}<br>${pin.remark}`).openOn(map);
+        });
+        pinsList.appendChild(pinItem);
+    });
+}
+
+// Event listener to handle pin drops
+map.on('click', async (e) => {
+    const { lat, lng } = e.latlng;
+    const address = await fetchAddress(lat, lng);
+
+    const popupContent = document.createElement('div');
+    popupContent.className = 'popup-form';
+    popupContent.innerHTML = `
+        <p><strong>Address:</strong> ${address}</p>
+        <label for="remark">Remark:</label>
+        <input type="text" id="remark" placeholder="Enter your remark here" />
+        <button id="save-pin">Save Pin</button>
+    `;
+
+    const popup = L.popup().setLatLng([lat, lng]).setContent(popupContent).openOn(map);
+
+    popupContent.querySelector('#save-pin').addEventListener('click', () => {
+        const remark = popupContent.querySelector('#remark').value;
+
+        // Save pin data
+        const newPin = { lat, lng, address, remark };
+        const pins = getPinsFromLocalStorage();
+        pins.push(newPin);
+        savePinsToLocalStorage(pins);
+
+        // Render pins in sidebar
+        renderPins();
+
+        map.closePopup();
+    });
+});
+
+// Load pins on startup
+window.addEventListener('load', renderPins);
+</script>
+
+</body>
+</html>
